@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Debt Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0d0a14; --card: #13101e; --border: #2a1f3d;
+    --accent: #f87171; --accent2: #a78bfa; --green: #34d399;
+    --yellow: #fbbf24; --text: #f0e6ff; --muted: #7c6a9a;
+  }
+  body { font-family: 'Sora', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 16px; }
+  body::before { content: ''; position: fixed; top: -30%; right: -20%; width: 60%; height: 60%; background: radial-gradient(ellipse, rgba(167,139,250,0.07) 0%, transparent 70%); pointer-events: none; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 28px 32px; width: 100%; max-width: 520px; position: relative; overflow: hidden; animation: fadeUp 0.5s ease both; }
+  .card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, var(--accent2), transparent); opacity: 0.5; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+  .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; }
+  .label { font-size: 10px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent); margin-bottom: 4px; }
+  .title { font-size: 20px; font-weight: 800; line-height: 1.2; }
+  .rate-badge { background: rgba(167,139,250,0.1); border: 1px solid rgba(167,139,250,0.25); color: var(--accent2); font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; padding: 6px 12px; border-radius: 100px; cursor: pointer; transition: background 0.2s; }
+  .rate-badge:hover { background: rgba(167,139,250,0.2); }
+  .remaining-display { text-align: center; margin: 4px 0 24px; }
+  .remaining-num { font-size: 48px; font-weight: 800; font-family: 'JetBrains Mono', monospace; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .remaining-label { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .bar-wrap { margin-bottom: 24px; }
+  .bar-header { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+  .bar-track { background: rgba(255,255,255,0.06); border-radius: 100px; height: 12px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 100px; background: linear-gradient(90deg, var(--green), var(--accent2)); width: 0%; transition: width 1.5s cubic-bezier(0.22, 1, 0.36, 1); box-shadow: 0 0 12px rgba(52,211,153,0.3); }
+  .stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+  .stat { background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 12px; padding: 14px 12px; text-align: center; }
+  .stat-label { font-size: 9px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  .stat-value { font-size: 13px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+  .stat-value.red { color: var(--accent); } .stat-value.green { color: var(--green); } .stat-value.purple { color: var(--accent2); } .stat-value.yellow { color: var(--yellow); }
+  .form-section { border-top: 1px solid var(--border); padding-top: 20px; margin-bottom: 20px; }
+  .form-label { font-size: 10px; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
+  .form-row { display: flex; gap: 8px; margin-bottom: 8px; }
+  .input { flex: 1; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 13px; outline: none; transition: border-color 0.2s; }
+  .input:focus { border-color: var(--accent2); background: rgba(167,139,250,0.05); }
+  .input::placeholder { color: var(--muted); }
+  .input-date { background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 13px; outline: none; width: 160px; color-scheme: dark; }
+  .pay-btn { background: linear-gradient(135deg, var(--accent), var(--accent2)); border: none; border-radius: 10px; padding: 10px 20px; color: white; font-family: 'Sora', sans-serif; font-size: 13px; font-weight: 700; cursor: pointer; transition: opacity 0.2s, transform 0.1s; white-space: nowrap; }
+  .pay-btn:hover { opacity: 0.9; transform: scale(1.02); } .pay-btn:active { transform: scale(0.98); }
+  .breakdown-preview { background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; display: flex; justify-content: space-between; font-size: 12px; font-family: 'JetBrains Mono', monospace; color: var(--muted); margin-bottom: 8px; min-height: 40px; align-items: center; }
+  .breakdown-preview span { color: var(--text); font-weight: 600; }
+  .history-section { border-top: 1px solid var(--border); padding-top: 20px; }
+  .history-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .history-label { font-size: 10px; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); }
+  .clear-btn { font-size: 10px; color: var(--accent); background: none; border: none; cursor: pointer; font-family: 'Sora', sans-serif; opacity: 0.7; }
+  .clear-btn:hover { opacity: 1; }
+  .history-list { display: flex; flex-direction: column; gap: 8px; max-height: 320px; overflow-y: auto; }
+  .history-list::-webkit-scrollbar { width: 4px; } .history-list::-webkit-scrollbar-track { background: transparent; } .history-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  .history-item { background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; display: grid; grid-template-columns: 1fr auto; gap: 4px; animation: fadeUp 0.3s ease both; }
+  .history-date { font-size: 10px; color: var(--muted); font-family: 'JetBrains Mono', monospace; margin-bottom: 4px; }
+  .history-total { font-size: 15px; font-weight: 700; font-family: 'JetBrains Mono', monospace; color: var(--accent); }
+  .history-split { font-size: 10px; color: var(--muted); margin-top: 2px; }
+  .history-split .p { color: var(--green); } .history-split .i { color: var(--yellow); }
+  .history-balance { text-align: right; }
+  .history-balance-label { font-size: 9px; color: var(--muted); margin-bottom: 2px; }
+  .history-balance-val { font-size: 13px; font-weight: 700; font-family: 'JetBrains Mono', monospace; color: var(--accent2); }
+  .empty-history { text-align: center; color: var(--muted); font-size: 12px; padding: 20px; }
+  .success-msg { font-size: 11px; color: var(--green); text-align: center; margin-top: 8px; opacity: 0; transition: opacity 0.3s; font-family: 'JetBrains Mono', monospace; }
+  .success-msg.show { opacity: 1; }
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 100; align-items: center; justify-content: center; }
+  .modal-overlay.show { display: flex; }
+  .modal { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 24px; width: 300px; }
+  .modal-title { font-size: 14px; font-weight: 700; margin-bottom: 16px; }
+  .modal-row { display: flex; gap: 8px; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="header">
+    <div>
+      <div class="label">💳 Debt Tracker</div>
+      <div class="title">Loan Payoff<br>Dashboard</div>
+    </div>
+    <div class="rate-badge" onclick="openRateModal()">⚙️ Rate: <span id="rateDisplay">8.0</span>%</div>
+  </div>
+  <div class="remaining-display">
+    <div class="remaining-num" id="remainingNum">₹0</div>
+    <div class="remaining-label">remaining debt balance</div>
+  </div>
+  <div class="bar-wrap">
+    <div class="bar-header">
+      <span>Started: ₹15,80,453</span>
+      <span id="pctPaid">0% paid off</span>
+    </div>
+    <div class="bar-track"><div class="bar-fill" id="barFill"></div></div>
+  </div>
+  <div class="stats">
+    <div class="stat"><div class="stat-label">🔴 Started</div><div class="stat-value red">₹15,80,453</div></div>
+    <div class="stat"><div class="stat-label">✅ Principal Paid</div><div class="stat-value green" id="principalPaid">₹0</div></div>
+    <div class="stat"><div class="stat-label">🔥 Interest Paid</div><div class="stat-value yellow" id="interestPaid">₹0</div></div>
+    <div class="stat"><div class="stat-label">💰 Total Paid</div><div class="stat-value purple" id="totalPaid">₹0</div></div>
+    <div class="stat"><div class="stat-label">📅 Entries</div><div class="stat-value" id="paymentCount">0</div></div>
+    <div class="stat"><div class="stat-label">📉 Debt Closed</div><div class="stat-value green" id="debtClosed">₹0</div></div>
+    <div class="stat" style="grid-column: span 3;"><div class="stat-label">📊 Avg Monthly Payment</div><div class="stat-value purple" id="avgMonthly">₹0</div></div>
+  </div>
+  <div class="form-section">
+    <div class="form-label">➕ Log New Payment</div>
+    <div class="form-row">
+      <input class="input" type="number" id="paymentAmount" placeholder="Amount paid (₹)" oninput="previewBreakdown()" />
+      <input class="input-date" type="date" id="paymentDate" />
+    </div>
+    <div class="breakdown-preview" id="breakdownPreview">Enter amount to see principal / interest split</div>
+    <div class="form-row">
+      <input class="input" type="text" id="paymentNote" placeholder="Note (e.g. Gold loan EMI)" />
+      <button class="pay-btn" onclick="logPayment()">Log</button>
+    </div>
+    <div class="success-msg" id="successMsg">✓ Payment logged!</div>
+  </div>
+  <div class="history-section">
+    <div class="history-header">
+      <div class="history-label">📋 Payment History</div>
+      <button class="clear-btn" onclick="clearExtra()">Clear new entries</button>
+    </div>
+    <div class="history-list" id="historyList"><div class="empty-history">Loading...</div></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-title">⚙️ Update Settings</div>
+    <div style="margin-bottom:12px;">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">Annual Interest Rate (%)</div>
+      <input class="input" type="number" id="rateInput" placeholder="e.g. 8" step="0.1" style="width:100%" />
+    </div>
+    <div style="margin-bottom:16px;">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">Current Balance (₹)</div>
+      <input class="input" type="number" id="balanceInput" placeholder="e.g. 1032583" style="width:100%" />
+    </div>
+    <button class="pay-btn" style="width:100%" onclick="saveSettings()">Save</button>
+  </div>
+</div>
+
+<script>
+  const STARTING = 1580453;
+
+  // ── Historical snapshots (your actual tracked data) ──────────────────────
+  const SNAPS = [
+    { date: '2024-06-01', balance: 1580453 },
+    { date: '2024-09-03', balance: 1535891 },
+    { date: '2024-12-01', balance: 1505397 },
+    { date: '2024-12-10', balance: 1455397 },
+    { date: '2025-03-02', balance: 1408446 },
+    { date: '2025-03-31', balance: 1391962 },
+    { date: '2025-04-29', balance: 1349317 },
+    { date: '2025-05-09', balance: 1326317 },
+    { date: '2025-06-21', balance: 1318000 },
+    { date: '2025-08-28', balance: 1212065 },
+    { date: '2025-09-15', balance: 1204565 },
+    { date: '2025-12-24', balance: 1145190 },
+    { date: '2026-03-10', balance: 1105190 },
+    { date: '2026-03-14', balance: 1032583 },
+  ];
+
+  // Build history from snapshots — principal = actual balance drop, interest = accrued over period
+  function buildSnapHistory() {
+    let items = [], totP = 0, totI = 0;
+    const rate = parseFloat(localStorage.getItem('debt_rate') || '8');
+    for (let i = 1; i < SNAPS.length; i++) {
+      const prev = SNAPS[i-1], curr = SNAPS[i];
+      const principal = prev.balance - curr.balance;
+      const days = Math.round((new Date(curr.date) - new Date(prev.date)) / 86400000);
+      const interest = Math.round(prev.balance * (rate/100) * (days/365));
+      totP += principal; totI += interest;
+      items.push({ date: curr.date, amount: principal + interest, principal, interest, balance: curr.balance, note: 'Historical' });
+    }
+    return { items: items.reverse(), totP, totI };
+  }
+
+  function fmt(n) { return '₹' + Math.abs(Math.round(n)).toLocaleString('en-IN'); }
+
+  // Extra payments logged by user after last snapshot
+  let extras = JSON.parse(localStorage.getItem('debt_extras') || '[]');
+  let currentBalance = parseFloat(localStorage.getItem('debt_balance') || SNAPS[SNAPS.length-1].balance);
+  let rate = parseFloat(localStorage.getItem('debt_rate') || '8');
+
+  function previewBreakdown() {
+    const amt = parseFloat(document.getElementById('paymentAmount').value);
+    if (!amt || amt <= 0) { document.getElementById('breakdownPreview').innerHTML = 'Enter amount to see principal / interest split'; return; }
+    const monthlyInt = currentBalance * (rate/100) / 12;
+    const interest = Math.min(monthlyInt, amt);
+    const principal = amt - interest;
+    document.getElementById('breakdownPreview').innerHTML =
+      `Principal: <span style="color:var(--green)">${fmt(principal)}</span> &nbsp;·&nbsp; Interest: <span style="color:var(--yellow)">${fmt(interest)}</span>`;
+  }
+
+  function logPayment() {
+    const amt = parseFloat(document.getElementById('paymentAmount').value);
+    const dateVal = document.getElementById('paymentDate').value || new Date().toISOString().split('T')[0];
+    const note = document.getElementById('paymentNote').value || '';
+    if (!amt || amt <= 0) return;
+    const monthlyInt = currentBalance * (rate/100) / 12;
+    const interest = Math.min(monthlyInt, amt);
+    const principal = amt - interest;
+    currentBalance = Math.max(currentBalance - principal, 0);
+    const entry = { date: dateVal, amount: amt, principal, interest, balance: currentBalance, note };
+    extras.unshift(entry);
+    localStorage.setItem('debt_extras', JSON.stringify(extras));
+    localStorage.setItem('debt_balance', currentBalance);
+    document.getElementById('paymentAmount').value = '';
+    document.getElementById('paymentNote').value = '';
+    document.getElementById('paymentDate').value = new Date().toISOString().split('T')[0];
+    document.getElementById('breakdownPreview').innerHTML = 'Enter amount to see principal / interest split';
+    const msg = document.getElementById('successMsg');
+    msg.classList.add('show');
+    setTimeout(() => msg.classList.remove('show'), 2500);
+    updateUI();
+  }
+
+  function clearExtra() {
+    if (!confirm('Clear only your new entries? Historical data stays.')) return;
+    extras = [];
+    currentBalance = SNAPS[SNAPS.length-1].balance;
+    localStorage.removeItem('debt_extras');
+    localStorage.setItem('debt_balance', currentBalance);
+    updateUI();
+  }
+
+  function openRateModal() {
+    document.getElementById('rateInput').value = rate;
+    document.getElementById('balanceInput').value = Math.round(currentBalance);
+    document.getElementById('modalOverlay').classList.add('show');
+  }
+  function closeModal(e) { if (e.target === document.getElementById('modalOverlay')) document.getElementById('modalOverlay').classList.remove('show'); }
+  function saveSettings() {
+    const r = parseFloat(document.getElementById('rateInput').value);
+    const b = parseFloat(document.getElementById('balanceInput').value);
+    if (r > 0) { rate = r; localStorage.setItem('debt_rate', r); }
+    if (b > 0) { currentBalance = b; localStorage.setItem('debt_balance', b); }
+    document.getElementById('modalOverlay').classList.remove('show');
+    updateUI();
+  }
+
+  function updateUI() {
+    const snap = buildSnapHistory();
+    const allPayments = [...extras, ...snap.items];
+
+    // Totals
+    let extraP = 0, extraI = 0;
+    extras.forEach(e => { extraP += e.principal; extraI += e.interest; });
+    const totalP = snap.totP + extraP;
+    const totalI = snap.totI + extraI;
+    const totalPaid = totalP + totalI;
+    const debtClosed = STARTING - currentBalance;
+    const pct = Math.min((debtClosed / STARTING) * 100, 100);
+
+    document.getElementById('remainingNum').textContent = fmt(currentBalance);
+    document.getElementById('pctPaid').textContent = pct.toFixed(1) + '% paid off';
+    document.getElementById('rateDisplay').textContent = rate.toFixed(1);
+    document.getElementById('principalPaid').textContent = fmt(totalP);
+    document.getElementById('interestPaid').textContent = fmt(totalI);
+    document.getElementById('totalPaid').textContent = fmt(totalPaid);
+    document.getElementById('paymentCount').textContent = allPayments.length;
+    document.getElementById('debtClosed').textContent = fmt(debtClosed);
+
+    // Avg monthly payment: total paid / months since first entry
+    const firstDate = new Date(SNAPS[1].date);
+    const today = new Date();
+    const months = Math.max((today - firstDate) / (1000 * 60 * 60 * 24 * 30.5), 1);
+    const avgMonthly = totalPaid / months;
+    document.getElementById('avgMonthly').textContent = fmt(avgMonthly) + ' / mo';
+
+    setTimeout(() => { document.getElementById('barFill').style.width = pct + '%'; }, 100);
+
+    const list = document.getElementById('historyList');
+    list.innerHTML = allPayments.map(p => `
+      <div class="history-item">
+        <div>
+          <div class="history-date">${p.date}${p.note ? ' · ' + p.note : ''}</div>
+          <div class="history-total">${fmt(p.amount)}</div>
+          <div class="history-split">
+            <span class="p">Principal ${fmt(p.principal)}</span> &nbsp;·&nbsp;
+            <span class="i">Interest ${fmt(p.interest)}</span>
+          </div>
+        </div>
+        <div class="history-balance">
+          <div class="history-balance-label">Balance after</div>
+          <div class="history-balance-val">${fmt(p.balance)}</div>
+        </div>
+      </div>`).join('');
+  }
+
+  document.getElementById('paymentDate').value = new Date().toISOString().split('T')[0];
+  window.addEventListener('load', () => setTimeout(updateUI, 300));
+</script>
+</body>
+</html>
